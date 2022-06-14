@@ -1,0 +1,388 @@
+kind: live
+## Required. Type of workflow, might be one of the following:
+## - 'live' -- full reference at https://neu-ro.gitbook.io/neuro-flow/reference/live-workflow-syntax
+## - 'batch' -- full reference at https://neu-ro.gitbook.io/neuro-flow/reference/batch-workflow-syntax
+# id: <id>
+## Optional. Identifier of the workflow. By default, the id is 'live'. It's available as $[[ flow.flow_id ]] in experssions.
+## Note: Not to be confused with $[[ flow.project_id ]], which is a different context defined in the `project.yml` file.
+title: jy_gaze
+## Optional. Workflow title. Can be any valid string and is accessible as $[[ flow.title ]]
+
+defaults:
+## Optional section.
+## A map of default settings that will apply to all jobs in the workflow.
+## You can override these global default settings for specific jobs.
+  life_span: 3d
+  ## The default lifespan for jobs ran by the workflow if not overridden by jobs.<job-id>.life_span.
+  ## The lifespan value can be one of the following:
+  ##  - A float number representing the amount of seconds (3600 represents an hour)
+  ##  - A string of the following format: 1d6h15m (1 day, 6 hours, 15 minutes)
+  # preset: gpu-small
+  ## The default preset name used to run all jobs in this project if not overridden by jobs.<job-id>.preset.
+  ## Consider selecting the resource preset separately for each job according to your needs.
+  # env:
+  #   key1: value1
+  #   key2: value2
+  ## A mapping of environment variables that will be set in all jobs of the workflow.
+  ## When two or more environment variables are defined with the same name,
+  ##  `neuro-flow` uses the most specific environment variable.
+  ## For example, an environment variable defined in a job will override the workflow's default.
+  # volumes:
+  #   - storage:some/path:/path/in/job
+  #   - storage://absolute/path:/different/path/in/job
+  ## Set of volumes which will be mounted to all jobs within this project.
+  ## Default volumes are not passed to actions.
+  # schedule_timeout: 20m
+  ## The attribute accepts the following values:
+  ##  - A float number representing the amount of seconds (3600 represents an hour),
+  ##  - A string of the following format: 1d6h15m45s (1 day, 6 hours, 15 minutes, 45 seconds)
+  ## The cluster-wide timeout is used if both default.schedule_timeout and jobs.<job-id>.schedule_timeout are omitted.
+  ## See the job description below for more information.
+  # tags: [tag-a, tag-b]
+  ## A list of tags that are added to every job created by the workflow.
+  # workdir: /users/my_user
+  ## The default working directory for jobs created by this workflow if jobs.<job-id>.workdir is not set.
+
+images:
+  ## Optional section, a mapping of image definitions used by the workflow.
+  train:    #image of job name
+  ## `neuro-flow build train` creates an image from the passed Dockerfile and uploads it to the Neu.ro Registry.
+  ## The $[[ images.img_id.ref ]] expression can be used for pointing to an image from jobs.<job-id>.image.
+    ref: image:/$[[ project.owner ]]/$[[ flow.project_id ]]:v1
+    ## Required. Image reference, can be of two types:
+    ##  - Platform-hosted image - its reference should start with the 'image:' prefix. `neuro-flow build <img_id>` will work in this case.
+    ##  - Image hosted on DockerHub - without the 'image:' prefix. In this case, `neuro-flow build <img_id>` will not work.
+    ## Check ./neuro/project.yaml to configure the $[[ flow.project_id ]] part.
+    ## During job execution, the '$[[ flow.project_id ]]' part will be replaced with its string value by the Neuro-Flow engine.
+    ## Hint: You can use the embedded `hash_files()` function to generate a built image's tag based on its content.
+    ## Example:
+    ##  train:
+    ##    ref: image:$[[ flow.project_id ]]:$[[ hash_files('Dockerfile', 'requirements.txt', 'jy_gaze/**/*.py')]]
+    dockerfile: $[[ flow.workspace ]]/Dockerfile
+    ## An optional Docker file path used for building images, `Dockerfile` by default. The path should be relative to the context's root.
+    context: $[[ flow.workspace ]]/
+    ## Optional. The Docker context used to build an image, specified as a local path relative to the project's root folder.
+    ## The project's root folder is the folder that contains the '.neuro' directory,
+    ##  its path can be referenced via $[[ flow.workspace ]]/.
+    # build_preset: cpu-small
+    ## Optional. Preset name used to build the Docker image.
+    ## Consider uncommenting and changing it if the resulting image is large. Otherwise, use GPU to build it.
+    # build_args:
+    #   - ARG1=val1
+    #   - ARG2=val2
+    ## A list of optional build arguments passed to the image builder.
+    # env:
+    #  ENV1: val1
+    #  ENV2: val2
+    ## A mapping of environment variables passed to the image builder.
+    ## Hint: You can also map platform secrets as values of environment variables and later utilize them during image building.
+    ## For example, you have a `secret:github_password` which gives you access to a private repository.
+    ## You can map it as an environment variable `GH_PASS: secret:github_password` in the builder job
+    ##   and then pass it further as `--build-arg GH_PASS=$GH_PASS` when building the container.
+    # volumes:
+    #   - storage:folder1:/mnt/folder1:ro
+    #   - storage:folder2:/mnt/folder2
+    #   - volumes.volume_id.ref
+    ## A list of volume references mounted to the image building process.
+    ## Hint: You can also map platform secrets as files and later utilize them during image building.
+    ## For example, you have a `secret:aws_account_credentials` file which gives you access to an S3 bucket.
+    ## You can attach it as a volume to the builder job:
+    ##  `- secret:aws_account_credentials:/kaniko_context/aws_account_credentials`
+    ## A file with credentials will then appear in the root of the build context,
+    ##  since the build context is mounted to the `/kaniko_context` folder within the builder job.
+
+volumes:
+## Optional section.
+## A volume defines a link between the Neu.ro storage folder or disk, and a local folder within the job.
+## A volume can be mounted to a job by using the `jobs.<job-id>.volumes` attribute.
+  data:
+  ## The key 'volume-id' (data in this case) is a string and its value is a map of the volume's configuration data.
+  ## You must replace 'volume-id' with a string that is unique to the volumes object.
+  ## The 'volume-id' must start with a letter and contain only alphanumeric characters or underscore symbols.
+    remote: storage:/$[[ project.owner ]]/$[[ flow.project_id ]]/data
+    ## Required. The volume URI on the Neu.ro Storage ('storage:path/on/storage') or disk id ('disk:disk-id-or-name').
+    ## Learn more about Neu.ro Storage and Neu.ro Disks at
+    ##  https://docs.neu.ro/core/platform-storage/storage and https://docs.neu.ro/core/platform-storage/disks respectively.
+    mount: /project/data
+    ## Required. The mount path inside a job.
+    local: data
+    ## Optional. Volumes can also be assotiated with folders on a local machine.
+    ## A local path should be relative to the project's root.
+    ## If this parameter is specified, the volume content can be synchronized between the local machine and a storage folder (but not a disk!)
+    ##  with the help of `neuro-flow upload` and `neuro-flow download` commands.
+    # read-only: true
+    ## The volume is mounted as read-only by default if this attribute is set, read-write mode is used otherwise.
+  code:
+    remote: storage:/$[[ project.owner ]]/$[[ flow.project_id ]]/modules
+    mount: /project/modules
+    local: modules
+  config:
+    remote: storage:/$[[ project.owner ]]/$[[ flow.project_id ]]/config
+    mount: /project/config
+    local: config
+  notebooks:
+    remote: storage:/$[[ project.owner ]]/$[[ flow.project_id ]]/notebooks
+    mount: /project/notebooks
+    local: notebooks
+  results:
+    remote: storage:/$[[ project.owner ]]/$[[ flow.project_id ]]/results
+    mount: /project/results
+    local: results
+  project:
+    remote: storage:/$[[ project.owner ]]/$[[ flow.project_id ]]
+    mount: /project
+    local: .
+
+jobs:
+## A live workflow can run jobs by their identifiers ('job-id') using the `neuro-flow run <job-id>` command.
+## Each job runs remotely on the Neu.ro Platform.
+## Jobs could be defined in two different ways:
+##  1. Directly in this file;
+##  2. In a separate file (on a local machine or in a Git repository) and reused as an 'action';
+## Checkout full documentation at the respective pages:
+##  1. https://neu-ro.gitbook.io/neuro-flow/reference/live-workflow-syntax#jobs
+##  2. https://neu-ro.gitbook.io/neuro-flow/reference/actions-syntax
+  remote_debug:
+  ## Each job must have an associated Job ID (a.k.a. job name) within the project.
+  ## The key 'job-id' is a string and its value is a map of the job's configuration data or action call.
+  ## 'job-id' must start with a letter and contain only alphanumeric characters or underscore symbols `_`.
+  ## Dashes `-` are not allowed.
+    action: gh:neuro-actions/remote_debug@v1.0.0
+    ## The type of this particular job is an 'action'.
+    ## 'action' is a URL that specifies the location of the job's description.
+    ## Two schemes exist:
+    ## - `workspace:` or `ws:` for action files that are stored locally
+    ## - `github:` or `gh:` for actions that are bound to a GitHub repository
+    ## In this particular case, we are using a GitHub repository https://github.com/neuro-actions/remote_debug under the `@1.0.0` tag.
+    ## To run this job, Neuro-Flow will fetch the 'action.yaml' file from the repository and execute the job defined in it.
+    args:
+    ## Optional action-specific mapping of values that will be passed to the actions as arguments.
+    ## They should correspond to inputs defined in the action file.
+    ## Each value should be a string.
+      image: $[[ images.train.ref ]]
+      volumes_data_remote: $[[ volumes.data.remote ]]
+      volumes_code_remote: $[[ volumes.code.remote ]]
+      volumes_config_remote: $[[ volumes.config.remote ]]
+      volumes_results_remote: $[[ volumes.results.remote ]]
+
+ 
+
+  my_bash_job:
+    preset: cpu-small
+    image: $[[ images.train.ref ]]
+    detach: False
+    life_span: 10d
+    volumes:
+      - $[[ volumes.data.ref_rw ]]
+      - $[[ volumes.code.ref_ro ]]
+      - $[[ volumes.config.ref_ro ]]
+      - $[[ volumes.results.ref_rw ]]
+      # - secret:/mrsmariyadavydova/aws-use1-config:/var/secrets/aws/config
+      # - secret:/mrsmariyadavydova/aws-use1-credentials:/var/secrets/aws/credentials
+      # - secret:/yevheniisemendiak/aws-all-s3-credentials:/var/secrets/aws/credentials-la-segmentation-pipeline
+    env:
+      EXPOSE_SSH: "yes"
+      PYTHONPATH: $[[ volumes.code.mount ]]
+    multi: true
+    bash: |
+        bash
+
+  train:
+  ## Unlike the 'remote_debug' action call, the 'train' job description is stored directly in this file.
+    image: $[[ images.train.ref ]]
+    ## Required for locally defined jobs. This field defines the Docker image used to run the job.
+    ## The image can be hosted:
+    ##  - on DockerHub ('python:3.9' or 'ubuntu:20.04')
+    ##  - on the platform registry. In this case, the image's name should be prefixed with 'image:', e.g. 'image:my_image:v2.3'
+    ## $[[ images.train.ref ]] is a reference to the 'train' image defined in the 'images' section of this file.
+    # params:
+    #   name1: default1
+    #   name2: ~        # None by default
+    #   name3: ""       # Empty string by default
+    ## Optional. Params is a mapping of key-value pairs that have default values and can be overridden
+    ##   from the command line by using `neuro-flow run <job-id> --param name1 val1 --param name2 val2`.
+    ## Parameters can be specified in 'short' and 'long' forms - the example above is in a short form.
+    ## The short form is compact, but only allows to specify the parameter's name and default value.
+    ## The long form allows to additionally specify parameter descriptions.
+    ## This can be useful for `neuro-flow run` command introspection, shell autocompletion,
+    ##  and generation of more detailed error messages. Example:
+    # params:
+    #   name1:
+    #     default: default1
+    #     descr: The name1 description
+    #   name2:
+    #     default: ~
+    #     descr: The name2 description
+    ## These parameters can be used in expressions for calculating other job attributes.
+    ## Note: 'params' can also be used in 'action' descriptions.
+    # browse: true
+    ## Whether to open the job's HTTP URI in a browser after job startup. `False` by default.
+    # detach: true
+    ## By default, 'neuro-flow run <job-id>' keeps the terminal attached to the spawned job.
+    ## This can help with viewing the job's logs and running commands in its embedded bash session.
+    ## Enable the `detach` attribute to disable this behavior.
+    # entrypoint: sh -c "echo $HOME"
+    ## Optional. You can override a Docker image ENTRYPOINT if needed.
+    # http_auth: false
+    ## Control whether the HTTP port exposed by the job requires Neu.ro Platform authentication for access.
+    ## You may want to disable the authentication to allow everybody to access your job's exposed web resource.
+    ## True by default.
+    # http_port: 8080
+    ## The job's HTTP port number that will be exposed on the platform.
+    ## By default, the Neu.ro Platform exposes the job's internal 80 port as an HTTPS-protected resource.
+    ## Use 0 to disable the feature entirely.
+    ## Note: only HTTP traffic is allowed. The platform encapsulates it into TLS automatically to provide an HTTPS connection.
+    life_span: 10d
+    ## The time period after which a job will be automatically killed. 1 day by default.
+    ## The value could be:
+    ## - A float number representing an amount of seconds (3600 for an hour)
+    ## - An expression in the following format: 1d6h15m (1 day, 6 hours, 15 minutes)
+    # name: my-job-name
+    ## Specifies an optional job name.
+    ## This name becomes a part of the job's internal hostname and exposed HTTP URL.
+    ##  The job can then be controlled by its name through the low-level `neuro` tool.
+    ## If the name is not specified in the `name` attribute, the default one will be generated as follows:
+    ## '<PROJECT-ID>-<JOB-ID>[-<MULTI_SUFFIX>]'.
+    # multi: true
+    ## By default, a job can only have one running instance at a time.
+    ## Calling 'neuro-flow run <job-id>' with the same job ID for a second time
+    ##  will attach to the already running job instead of creating a new one.
+    ## This can be optionally overridden by enabling the 'multi' attribute.
+    # pass_config: true
+    ## Attach your Neu.ro authentication data and config into the job.
+    ## Can be usefull if you want to use Neuro CLI inside the running job.
+    ## Note: the lifetime of passed credentials is bound to the job's lifetime.
+    ## It will be impossible to use them when the job is terminated.
+    # port_forward:
+    # - 6379:6379  # Default Redis port
+    # - 9200:9200  # Default Zipkin port
+    ## Defines an optional list of TCP tunnels into the job which will be opened when the job starts.
+    ## Each port forward entry is a string of a <LOCAL_PORT>:<REMOTE_PORT> format.
+    ## You can use this feature, for instance, to access a DB running in the job for debugging.
+    # preset: cpu-small
+    ## A resource preset used to run the job.
+    ## This overwrites the system-default (first in the 'neuro config show' list) and workflow-default configurations.
+    ## Consider selecting the resource preset separately for each job according to your needs.
+    # schedule_timeout: 1d
+    ## Set an optional schedule timeout to the specified value.
+    ## If the platform cluster has no resources to launch the job immediately, it will be kept in the waiting queue.
+    ## If the job is not started when the schedule timeout elapses, it will be failed.
+    ## The default cluster-wide schedule timeout is controlled by the admin and is usually about 5-10 minutes.
+    ## The value can be:
+    ## - A float number representing an amount of seconds
+    ## - A string in the following format: 1d6h15m45s (1 day, 6 hours, 15 minutes, 45 seconds)
+    # tags:
+    # - tag-a
+    # - tag-b
+    ## Optionally extend the list of job tags.
+    ## Each live job is tagged by:
+    ## - a job's tags which are taken from this attribute
+    ## - tags from 'defaults.tags' section
+    ## - system tags (project:<project-id> and job:<job-id>).
+    # title: my_job
+    ## Optionally override the 'job-id' title.
+    volumes:
+    ## A list of job volumes.
+    ## You can specify a plain string for the volume reference and use $[[ volumes.<volume-id>.ref ]] expressions.
+      - $[[ volumes.data.ref_rw ]]
+      - $[[ upload(volumes.code).ref_ro ]]
+      ## upload() - is an expression function which performs `neuro-flow upload code` before each run of this job
+      ## Check this list of magic functions and their use-cases under
+      ##  https://neu-ro.gitbook.io/neuro-flow/reference/expression-functions
+      - $[[ volumes.config.ref_ro ]]
+      - $[[ volumes.results.ref_rw ]]
+    # workdir: /users/my_user
+    ## Optionally set a working directory to use inside the job.
+    ## This attribute takes precedence if specified. Otherwise, 'defaults.workdir' takes priority.
+    ## If none of the previous are specified, a WORKDIR definition from the image is used.
+    env:
+    ## Set environment variables for the executed job.
+    ## When the environment variables are defined both in the job and in the 'defaults' section, the one defined in the job will override the workflow default.
+    ## You can also mount platform secrets as environment variables by setting these variables' values to 'secret:<secret-name>'.
+      EXPOSE_SSH: "yes"
+      PYTHONPATH: $[[ volumes.code.mount ]]
+    # cmd: python -u $[[ volumes.code.mount ]]/train.py
+    # cmd: python -u $[[ volumes.code.mount ]]/train.py
+    ## A job executes either a command, a bash script, or a python script.
+    ## All of 'cmd', 'bash', and 'python' are optional.
+    bash: |
+        cd $[[ volumes.project.mount ]]
+        python -u $[[ volumes.code.mount ]]/train.py --data $[[ volumes.data.mount ]]
+    ## This attribute contains a bash script to run.
+    ## The bash attribute is essentially a shortcut for cmd: 'bash -euo pipefail -c <shell_quoted_attr>'
+    ## This form is especially handy for executing complex multi-line bash scripts.
+    ## Bash should be pre-installed on the image to make this attribute work.
+    # python: |
+    #  import sys
+    #  print("The Python version is", sys.version)
+    ## This attribute contains a python script to run.
+    ## Python 3 should be pre-installed on the image to make this attribute work.
+    ## The 'cmd', 'bash', and 'python' sections are mutually exclusive: only one could be used.
+
+  multitrain:
+    image: $[[ images.train.ref ]]
+    detach: False
+    life_span: 10d
+    volumes:
+      - $[[ volumes.data.ref_ro ]]
+      - $[[ volumes.code.ref_ro ]]
+      - $[[ volumes.config.ref_ro ]]
+      - $[[ volumes.results.ref_rw ]]
+    env:
+      EXPOSE_SSH: "yes"
+      PYTHONPATH: $[[ volumes.code.mount ]]
+    multi: true
+    bash: |
+        cd $[[ volumes.project.mount ]]
+        python $[[ volumes.code.mount ]]/train.py --data $[[ volumes.data.mount ]] $[[ multi.args ]]
+        
+  jupyter:
+    multi: True
+    image: $[[ images.train.ref ]]
+    preset: 4A100
+    http_port: 8888
+    http_auth: True
+    browse: True
+    detach: True
+    volumes:
+      - ${{ volumes.data.ref_rw }}
+      - ${{ volumes.code.ref_rw }}
+      - ${{ volumes.config.ref_rw }}
+      - ${{ volumes.notebooks.ref_rw }}
+      - ${{ volumes.results.ref_rw }}
+    env:
+      PYTHONPATH: ${{ volumes.code.mount }}
+    cmd: >-
+      jupyter notebook
+        --no-browser
+        --ip=0.0.0.0
+        --port=8888
+        --allow-root
+        --NotebookApp.token=
+        --notebook-dir=${{ volumes.notebooks.mount }}
+        --NotebookApp.shutdown_no_activity_timeout=900
+        --MappingKernelManager.cull_idle_timeout=7200
+        --MappingKernelManager.cull_connected=True
+
+  #old one    
+  # jupyter:
+  #   action: gh:neuro-actions/jupyter@v1.1.2
+  #   args:
+  #     image: $[[ images.train.ref ]]
+  #     multi_args: $[[ multi.args ]]
+  #     volumes_data_remote: $[[ volumes.data.remote ]]
+  #     volumes_code_remote: $[[ volumes.code.remote ]]
+  #     volumes_config_remote: $[[ volumes.config.remote ]]
+  #     volumes_notebooks_remote: $[[ volumes.notebooks.remote ]]
+  #     volumes_results_remote: $[[ volumes.results.remote ]]
+  #     preset:  cloudinary-1t4
+
+  tensorboard:
+    action: gh:neuro-actions/tensorboard@v1.0.0
+    args:
+      volumes_results_remote: $[[ volumes.results.remote ]]
+
+  filebrowser:
+    action: gh:neuro-actions/filebrowser@v1.0.1
+    args:
+      volumes_project_remote: $[[ volumes.project.remote ]]
