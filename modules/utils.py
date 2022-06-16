@@ -112,3 +112,19 @@ def git_describe(path=Path(__file__).parent):  # path must be a directory
         return ''  # not a git repository
         
 
+def getArch(arch,bins):
+    # Base network structure
+    if arch == 'ResNet18':
+        model = L2CS( torchvision.models.resnet.BasicBlock,[2, 2,  2, 2], bins)
+    elif arch == 'ResNet34':
+        model = L2CS( torchvision.models.resnet.BasicBlock,[3, 4,  6, 3], bins)
+    elif arch == 'ResNet101':
+        model = L2CS( torchvision.models.resnet.Bottleneck,[3, 4, 23, 3], bins)
+    elif arch == 'ResNet152':
+        model = L2CS( torchvision.models.resnet.Bottleneck,[3, 8, 36, 3], bins)
+    else:
+        if arch != 'ResNet50':
+            print('Invalid value for architecture is passed! '
+                'The default value of ResNet50 will be used instead!')
+        model = L2CS( torchvision.models.resnet.Bottleneck, [3, 4, 6,  3], bins)
+    return model
