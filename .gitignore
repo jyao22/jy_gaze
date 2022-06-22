@@ -30,6 +30,10 @@ __pycache__/
 # C extensions
 *.so
 
+#wandb saved runs
+/notebooks/wandb/
+**/wandb
+
 # Distribution / packaging
 .Python
 build/

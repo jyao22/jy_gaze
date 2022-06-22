@@ -120,7 +120,7 @@ class Mpiigaze(Dataset):
     line = self.lines[idx]
     line = line.strip().split(" ")
 
-    name = line[3]
+    name = line[0]
     gaze2d = line[7]
     head2d = line[8]
     lefteye = line[1]

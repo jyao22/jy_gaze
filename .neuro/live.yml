@@ -340,6 +340,7 @@ jobs:
     multi: True
     image: $[[ images.train.ref ]]
     preset: cloudinary-1v100
+    # preset: cpu-small
     http_port: 8888
     http_auth: True
     browse: True
@@ -352,6 +353,8 @@ jobs:
       - ${{ volumes.results.ref_rw }}
     env:
       PYTHONPATH: ${{ volumes.code.mount }}
+      # WANDB_API_KEY:${JYWANDB}
+      WANDB_API_KEY: secret:/jyao/JYWANDB
     cmd: >-
       jupyter notebook
         --no-browser
