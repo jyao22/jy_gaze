@@ -145,7 +145,7 @@ class Mpiigaze(Dataset):
         img = self.transform(img)        
     
     # Bin values
-    bins = np.array(range(-42, 42,3))
+    bins = np.array(range(-52, 52, 3))  #now num_bins is35
     binned_pose = np.digitize([pitch, yaw], bins) - 1
 
     labels = binned_pose
