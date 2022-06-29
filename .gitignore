@@ -20,6 +20,10 @@ awkvars.out*
 *.jpeg
 *.png
 
+# large tar files
+*.tar
+*.tar.gz
+
 # Default Python .gitignore from: https://github.com/github/gitignore/blob/master/Python.gitignore
 
 # Byte-compiled / optimized / DLL files

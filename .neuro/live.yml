@@ -339,11 +339,11 @@ jobs:
   jupyter:
     multi: True
     image: $[[ images.train.ref ]]
-    # preset: cloudinary-1v100
+    preset: cloudinary-1v100
     # preset: cpu-small
     # preset: 4A100
     # preset: cloudinary-4v100
-    preset: 1A100
+    # preset: 1A100
     http_port: 8888
     http_auth: True
     browse: True

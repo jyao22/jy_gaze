@@ -1,3 +1,4 @@
 [storage]
-cp-exclude = [".git", ".neuro"]
+cp-exclude = [".git", ".neuro", "wandb"]
 cp-exclude-from-files=[".neuroignore"]
+
