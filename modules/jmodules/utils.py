@@ -1,6 +1,7 @@
 import numpy as np
 import json
 # import scipy
+from math import atan2, asin
 import datetime
 from pytz import timezone
 from scipy.spatial.transform import Rotation as Rot
@@ -42,10 +43,12 @@ class SynJSON:
     def cam_gaze_vectors(self):
         """ get the gaze vector in camera frame, transformed form world frame"""
         world2cam = self.world2cam()
-        gvectors = self.gaze_vectors() #left and right
+        gvectors = self.gaze_vectors()  #left and right
         r = Rot.from_matrix(world2cam[:3,:3])
         cam_gaze_vectors = r.apply(gvectors)
-        return cam_gaze_vectors
+        assert np.isclose(1.0 ,np.linalg.norm(cam_gaze_vectors[1]))
+        assert np.isclose(1.0 ,np.linalg.norm(cam_gaze_vectors[0]))
+        return cam_gaze_vectors   #left and right
         
 
     def pitch_yaw_roll(self, radian=True):
@@ -74,13 +77,35 @@ class SynJSON:
         mat = np.array(mat)
         return mat
 
-    def gaze_vectors(self):
+    def gaze_vectors(self):  #return the 3d gaze vectors, left and right
         vecr = self.data['gaze_values']['eye_right']['gaze_vector']
         vec_right = np.array(vecr)
         vecl = self.data['gaze_values']['eye_left']['gaze_vector']
         vec_left = np.array(vecl)
         return vec_left, vec_right
 
+    def d3tod2(self, vec, radian=True):
+        x, y, z = vec
+        theta = asin(x)
+        phi = atan2(y, z)
+        if radian:
+            return phi, theta  #pitch and yaw
+        else:
+            return phi*180*np.pi, theta*180/np.pi
+        
+
+    def pitchyaw2d(self, radian=True, average=True):
+        cam_gaze_vectors = self.cam_gaze_vectors()
+        pitch_left, yaw_left = self.d3tod2(cam_gaze_vectors[0])
+        pitch_right, yaw_right = self.d3tod2(cam_gaze_vectors[1])
+        results = np.array([[pitch_left, yaw_left], [pitch_right, yaw_right]])
+        if not radian:
+            results = results*180/np.pi 
+        if average:
+            return  results.mean(axis=0)
+        else:
+            return results  #pitch and then yaw
+        
 
 def stamp_angles(ifile, jfile, resize_to=(224, 224)):
     """  given a synthetic json file and image file, 

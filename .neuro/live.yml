@@ -174,7 +174,7 @@ jobs:
     life_span: 10d
     volumes:
       - $[[ volumes.data.ref_rw ]]
-      - $[[ volumes.code.ref_ro ]]
+      - $[[ volumes.code.ref_rw ]]
       - $[[ volumes.config.ref_ro ]]
       - $[[ volumes.results.ref_rw ]]
       # - secret:/mrsmariyadavydova/aws-use1-config:/var/secrets/aws/config
