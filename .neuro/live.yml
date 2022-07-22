@@ -187,6 +187,27 @@ jobs:
     bash: |
         bash
 
+  angle_analysis:
+    preset: cpu-small
+    image: $[[ images.train.ref ]]
+    detach: False
+    life_span: 5d
+    volumes:
+      - $[[ volumes.data.ref_rw ]]
+      - $[[ volumes.code.ref_rw ]]
+      - $[[ volumes.config.ref_ro ]]
+      - $[[ volumes.results.ref_rw ]]
+      # - secret:/mrsmariyadavydova/aws-use1-config:/var/secrets/aws/config
+      # - secret:/mrsmariyadavydova/aws-use1-credentials:/var/secrets/aws/credentials
+      # - secret:/yevheniisemendiak/aws-all-s3-credentials:/var/secrets/aws/credentials-la-segmentation-pipeline
+    env:
+      EXPOSE_SSH: "yes"
+      PYTHONPATH: $[[ volumes.code.mount ]]
+    multi: true
+    bash: |
+        cd $[[ volumes.project.mount ]]
+        python -u $[[ volumes.code.mount ]]/jcode/70_0_check_angles_sample.py
+
   train:
   ## Unlike the 'remote_debug' action call, the 'train' job description is stored directly in this file.
     image: $[[ images.train.ref ]]
@@ -339,8 +360,8 @@ jobs:
   jupyter:
     multi: True
     image: $[[ images.train.ref ]]
-    preset: cloudinary-1v100
-    # preset: cpu-small
+    # preset: cloudinary-1v100
+    preset: cpu-small
     # preset: 4A100
     # preset: cloudinary-4v100
     # preset: 1A100
