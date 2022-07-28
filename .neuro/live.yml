@@ -187,8 +187,11 @@ jobs:
     bash: |
         bash
 
-  angle_analysis:
-    preset: cpu-small
+  remote:
+    # preset: cpu-small
+    # preset: 4A100
+    preset: cloudinary-4v100
+    # preset: 1A100
     image: $[[ images.train.ref ]]
     detach: False
     life_span: 5d
@@ -203,10 +206,11 @@ jobs:
     env:
       EXPOSE_SSH: "yes"
       PYTHONPATH: $[[ volumes.code.mount ]]
+      WANDB_API_KEY: fd8d903a242b33139c7cc5b3a57058be02cf58f5
     multi: true
     bash: |
         cd $[[ volumes.project.mount ]]
-        python -u $[[ volumes.code.mount ]]/jcode/70_0_check_angles_sample.py
+        python -u $[[ volumes.code.mount ]]/jcode/70_04_syn_sdata3_model_syn_data.py
 
   train:
   ## Unlike the 'remote_debug' action call, the 'train' job description is stored directly in this file.
@@ -360,8 +364,8 @@ jobs:
   jupyter:
     multi: True
     image: $[[ images.train.ref ]]
-    # preset: cloudinary-1v100
-    preset: cpu-small
+    preset: cloudinary-1v100
+    # preset: cpu-small
     # preset: 4A100
     # preset: cloudinary-4v100
     # preset: 1A100
@@ -369,6 +373,7 @@ jobs:
     http_auth: True
     browse: True
     detach: True
+    life_span: 7d
     volumes:
       - ${{ volumes.data.ref_rw }}
       - ${{ volumes.code.ref_rw }}

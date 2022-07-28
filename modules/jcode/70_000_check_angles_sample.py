@@ -16,12 +16,11 @@ sys.path.append('/project/modules/jmodules')
 from jutils import SynJSON as SJ
 
 
-dpath = Path('/project/data/tmp')
+dpath = Path('/project/data/download/')
+project = 'sdata3_sample_angle_check'
 
 
-
-
-
+# %%time
 pitches = []
 yaws = []
 pitchesl =[]
@@ -30,11 +29,20 @@ pitchesr =[]
 yawsr = []
 iffy_pitches = 0
 iffy_yaws = 0
-for fold in dpath.glob('fold*'):
-    print(f'fold={fold}')
+for nf, fold in enumerate(dpath.glob('fold*')):
+    if nf>2:
+        break 
+    if nf >0:
+        print(f"\nfold={fold}")
+    else:
+        print(f'fold={fold}')
     dpath = dpath/fold
+    j =0
     for jfile in dpath.glob('*.json'):
 #         print(jfile)
+        j += 1
+        if j % 600== 0:
+            print(f"{j}", end=' ')
         sj = SJ(jfile)
         pitch, yaw = sj.pitchyaw2d(radian=False, average=True)
         [pitchl, yawl], [pitchr, yawr] = sj.pitchyaw2d(radian=False, average=False)
@@ -51,37 +59,41 @@ for fold in dpath.glob('fold*'):
             iffy_pitches += 1
 
 
-# print(len(pitches), iffy_pitches)
-# print(len(yaws), iffy_yaws)
-
-
-
+num_bins=50
+fig1, ax = plt.subplots()
+n, bins, patches = ax.hist(pitches, num_bins, 
+                            density = 1, 
+                            color ='g',
+                            alpha = 0.7)
+ax.set_title('distribution of pitches')
+ax.set_xlabel('degree')
+ax.set_xlim(-23, 7)
 
 
 num_bins=50
 n, bins, patches = plt.hist(pitches, num_bins, 
                             density = 1, 
-                            color ='green',
+                            color ='g',
                             alpha = 0.7)
 plt.title('distribution of pitches')
 plt.xlabel('degree')
 plt.xlim(-23, 7)
 
-with wandb.init(project="sdata3_sample_angle_analysis", name='sample_pitches') as run:
-    run.log({"data":wandb.Image(plt)})
+with wandb.init(project=project, name='sample_pitches_histogram') as run:
+    run.log({"data3":wandb.Image(plt)})
 
 
 num_bins=50
 n, bins, patches = plt.hist(yaws, num_bins, 
                             density = 1, 
-                            color ='magenta',
+                            color ='m',
                             alpha = 0.7)
 plt.title('distribution of yaws')
 plt.xlabel('degree')
 plt.xlim(-25, 25)
 
-with wandb.init(project="sdata3_sample_angle_analysis", name='sample_yaws') as run:
-    run.log({"data":wandb.Image(plt)})
+with wandb.init(project=project, name='sample_yaws_histogram') as run:
+    run.log({"data3":wandb.Image(plt)})
 
 
 plt.scatter(x=pitchesl, y=pitchesr)
@@ -89,8 +101,8 @@ plt.title('pitches of left and right eyes')
 plt.xlabel('pitch: left eye (degree)')
 plt.ylabel('pitch: right eye (degree)')
 plt.grid(visible=True)
-with wandb.init(project="sdata3_sample_angle_analysis", name='sample_pitches_corr') as run:
-    run.log({"data1":wandb.Image(plt)})
+with wandb.init(project=project, name='sample_pitches_corr') as run:
+    run.log({"data4":wandb.Image(plt)})
 
 
 plt.scatter(x=yawsl, y=yawsr)
@@ -99,8 +111,8 @@ plt.xlabel('yaw: left eye (degree)')
 plt.ylabel('yaw: right eye (degree)')
 plt.grid(visible=True)
 
-with wandb.init(project="sdata3_sample_angle_analysis", name='sample_yaws_corr') as run:
-    run.log({"data1":wandb.Image(plt)})
+with wandb.init(project=project, name='sample_yaws_corr') as run:
+    run.log({"data4":wandb.Image(plt)})
 
 
 adiffs = []
@@ -116,10 +128,10 @@ n, bins, patches = plt.hist(adiffs, num_bins,
                             color ='b',
                             alpha = 0.7)
 plt.title('distribution of yaw absolute differences')
-plt.xlabel('degree')
+plt.xlabel('degree difference')
 plt.xlim(3, 7)
-with wandb.init(project="sdata3_sample_angle_analysis", name='absolute diffs yaw right and left') as run:
-    run.log({"data2":wandb.Image(plt)})
+with wandb.init(project=project, name='absolute diffs yaw right and left') as run:
+    run.log({"data5":wandb.Image(plt)})
 
 
 diffs = []
@@ -135,10 +147,10 @@ n, bins, patches = plt.hist(diffs, num_bins,
                             density = 1, 
                             color ='g',
                             alpha = 0.7)
-plt.title('distribution of yaw  differences')
-plt.xlabel('degree')
+plt.title('distribution of yaw differences')
+plt.xlabel('degree difference')
 plt.xlim(3.0, 6)
 
-with wandb.init(project="sdata3_sample_angle_analysis", name='diffs yaw right and left') as run:
-    run.log({"data2":wandb.Image(plt)})
+with wandb.init(project=project, name='diffs yaw right and left') as run:
+    run.log({"data5":wandb.Image(plt)})
 
